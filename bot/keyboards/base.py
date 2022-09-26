@@ -1,6 +1,6 @@
 from aiogram.types import (
     InlineKeyboardMarkup,
-    InlineKeyboardButton,
+    InlineKeyboardButton, CallbackQuery,
 )
 from bot.resources.strings import (
     BUTTON_GET_VPN,
@@ -34,3 +34,11 @@ class BaseKeyboard(InlineKeyboardMarkup):
                     callback_data=QUERY_SERVERS
                 )
             )
+
+    @classmethod
+    def query_vpn(cls, query: CallbackQuery) -> bool:
+        return query.data == QUERY_VPN
+
+    @classmethod
+    def query_servers(cls, query: CallbackQuery) -> bool:
+        return query.data == QUERY_SERVERS
