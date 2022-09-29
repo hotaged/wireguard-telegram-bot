@@ -12,7 +12,10 @@ from bot.handlers.misc import (
 )
 
 from bot.handlers.filters import IsAdminUserQueryFilter
-from bot.keyboards.servers import AdminServerKeyboard
+from bot.keyboards.servers import (
+    AdminServerKeyboard,
+    AdminListKeyboard
+)
 from bot.keyboards.base import BaseKeyboard
 
 from bot.resources.strings import (
@@ -22,7 +25,8 @@ from bot.resources.strings import (
     SERVER_ADD_FAILED,
     SERVER_ADD_COUNTRY,
     SERVER_ADD_SUCCESS,
-    BASE_HANDLER_TEXT
+    BASE_HANDLER_TEXT,
+    SERVER_LIST_TEXT
 )
 
 
@@ -60,6 +64,36 @@ async def callback_query_add_server(callback_query: types.CallbackQuery):
         callback_query.message.chat.id,
         SERVER_ADD_WEBHOOK
     )
+
+
+@dp.callback_query_handler(
+    IsAdminUserQueryFilter(),
+    AdminServerKeyboard.query_list
+)
+async def callback_query_list_servers(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+
+    content = await WireguardServer.as_list_items()
+
+    offset, limit = AdminListKeyboard.parse_callback_query(callback_query)
+
+    await bot.edit_message_text(
+        SERVER_LIST_TEXT,
+
+        callback_query.message.chat.id,
+        callback_query.message.message_id,
+        callback_query.inline_message_id,
+
+        reply_markup=AdminListKeyboard(content, offset, limit)
+    )
+
+
+@dp.callback_query_handler(
+    IsAdminUserQueryFilter(),
+    AdminListKeyboard.query_back
+)
+async def callback_query_list_back(callback_query: types.CallbackQuery):
+    await callback_query_servers(callback_query)
 
 
 @dp.callback_query_handler(

@@ -1,13 +1,14 @@
 import logging
 
+from rich.logging import RichHandler
 from bot import settings, db
 from bot.handlers.misc import dp
 from aiogram.utils import executor
 
 if settings.debug:
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, handlers=[RichHandler()])
 else:
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, handlers=[RichHandler()])
 
 
 async def on_startup(*_):

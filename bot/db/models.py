@@ -4,16 +4,26 @@ import aiohttp
 
 
 from tortoise import models, fields
+from bot.keyboards.servers import ListItem
 
 
-class TelegramUser(models.Model):
+class AsListItemMixin:
+    @classmethod
+    async def as_list_items(cls, *args, **kwargs) -> ListItem:
+        return list(map(lambda instance: (instance.__str__(), instance.id), await cls.filter(*args, **kwargs)))
+
+
+class TelegramUser(models.Model, AsListItemMixin):
     telegram_id = fields.IntField(unique=True)
     is_admin = fields.BooleanField(default=False)
 
     wg_peers: fields.ReverseRelation['WireguardPeer']
 
+    def __str__(self) -> str:
+        return f'User<id: {self.telegram_id}>'
 
-class WireguardPeer(models.Model):
+
+class WireguardPeer(models.Model, AsListItemMixin):
     peer_name = fields.CharField(max_length=32)
 
     tg_user: fields.ForeignKeyRelation['TelegramUser'] = fields.ForeignKeyField(
@@ -22,6 +32,9 @@ class WireguardPeer(models.Model):
     wg_server: fields.ForeignKeyRelation['WireguardPeer'] = fields.ForeignKeyField(
         'models.WireguardServer', related_name='wg_peers'
     )
+
+    def __str__(self) -> str:
+        return self.peer_name
 
     async def config_and_qrcode(self) -> typing.Tuple[str, bytes]:
         headers = {'x-api-token': self.wg_server.server_key}
@@ -39,12 +52,15 @@ class WireguardPeer(models.Model):
         return config, qrcode
 
 
-class WireguardServer(models.Model):
+class WireguardServer(models.Model, AsListItemMixin):
     webhook_url = fields.CharField(max_length=128)
     server_key = fields.CharField(max_length=256)
     country = fields.CharField(max_length=256)
 
     wg_peers: fields.ReverseRelation[WireguardPeer]
+
+    def __str__(self) -> str:
+        return self.country
 
     async def download_peers(self):
         headers = {'x-api-token': self.server_key}

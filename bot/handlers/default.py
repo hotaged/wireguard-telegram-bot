@@ -3,7 +3,7 @@ from bot.handlers.filters import AdminLoginMessageFilter
 from bot.db.models import TelegramUser
 from bot.keyboards.base import BaseKeyboard
 from bot.resources.strings import BASE_HANDLER_TEXT
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
 
 @dp.message_handler(commands=['start'])
@@ -34,3 +34,8 @@ async def any_message_handler(message: Message):
         message.chat.id, BASE_HANDLER_TEXT,
         reply_markup=BaseKeyboard(user.is_admin)
     )
+
+
+@dp.callback_query_handler(lambda callback_query: callback_query.data == '*')
+async def any_callback_query_handler(callback_query: CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
