@@ -1,3 +1,4 @@
+
 class __IdCounter:
     count: int = 0
 
@@ -8,3 +9,5 @@ class __IdCounter:
 
 
 unique_query_id = __IdCounter.count_id
+
+
