@@ -78,6 +78,7 @@ async def callback_query_back_default(callback_query: types.CallbackQuery):
         reply_markup=BaseKeyboard(True)
     )
 
+
 @dp.message_handler(
     IsAdminUserQueryFilter(),
     state=AddStorageForm.webhook
@@ -87,6 +88,7 @@ async def process_webhook(message: types.Message, state: FSMContext):
         context['webhook'] = message.text
 
     await AddStorageForm.next()
+
     return await bot.send_message(
         message.chat.id, SERVER_ADD_SECRET
     )
@@ -101,6 +103,7 @@ async def process_secret(message: types.Message, state: FSMContext):
         context['secret'] = message.text
 
     await AddStorageForm.next()
+
     return await bot.send_message(
         message.chat.id, SERVER_ADD_COUNTRY
     )
