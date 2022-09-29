@@ -18,7 +18,7 @@ async def start_message(message: Message):
 
 @dp.message_handler(AdminLoginMessageFilter())
 async def admin_login_message(message: Message):
-    user = await TelegramUser.get(telegram_id=message.from_user)
+    user, _ = await TelegramUser.get_or_create(telegram_id=message.from_user, is_admin=True)
     await user.update_from_dict({'is_admin': True}).save()
     return await bot.send_message(
         message.chat.id, 'You are an admin now!',

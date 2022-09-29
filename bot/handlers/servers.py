@@ -1,19 +1,29 @@
+from aiogram import types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import StatesGroup, State
+from aiogram.dispatcher.filters.state import (
+    StatesGroup,
+    State
+)
 
-from bot.handlers.misc import dp, bot
+from bot.db.models import WireguardServer
+from bot.handlers.misc import (
+    dp,
+    bot
+)
+
 from bot.handlers.filters import IsAdminUserQueryFilter
 from bot.keyboards.servers import AdminServerKeyboard
 from bot.keyboards.base import BaseKeyboard
+
 from bot.resources.strings import (
     SERVER_MENU_TEXT,
     SERVER_ADD_WEBHOOK,
     SERVER_ADD_SECRET,
     SERVER_ADD_FAILED,
     SERVER_ADD_COUNTRY,
-    SERVER_ADD_SUCCESS
+    SERVER_ADD_SUCCESS,
+    BASE_HANDLER_TEXT
 )
-from aiogram import types
 
 
 @dp.callback_query_handler(
@@ -22,8 +32,13 @@ from aiogram import types
 )
 async def callback_query_servers(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    return await bot.send_message(
-        callback_query.message.chat.id, SERVER_MENU_TEXT,
+    return await bot.edit_message_text(
+        SERVER_MENU_TEXT,
+
+        callback_query.message.chat.id,
+        callback_query.message.message_id,
+        callback_query.inline_message_id,
+
         reply_markup=AdminServerKeyboard()
     )
 
@@ -47,6 +62,22 @@ async def callback_query_add_server(callback_query: types.CallbackQuery):
     )
 
 
+@dp.callback_query_handler(
+    IsAdminUserQueryFilter(),
+    AdminServerKeyboard.query_back
+)
+async def callback_query_back_default(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    return await bot.edit_message_text(
+        BASE_HANDLER_TEXT,
+
+        callback_query.message.chat.id,
+        callback_query.message.message_id,
+        callback_query.inline_message_id,
+
+        reply_markup=BaseKeyboard(True)
+    )
+
 @dp.message_handler(
     IsAdminUserQueryFilter(),
     state=AddStorageForm.webhook
@@ -65,7 +96,7 @@ async def process_webhook(message: types.Message, state: FSMContext):
     IsAdminUserQueryFilter(),
     state=AddStorageForm.secret
 )
-async def process_webhook(message: types.Message, state: FSMContext):
+async def process_secret(message: types.Message, state: FSMContext):
     async with state.proxy() as context:
         context['secret'] = message.text
 
@@ -79,8 +110,25 @@ async def process_webhook(message: types.Message, state: FSMContext):
     IsAdminUserQueryFilter(),
     state=AddStorageForm.country
 )
-async def process_webhook(message: types.Message, state: FSMContext):
+async def process_country(message: types.Message, state: FSMContext):
     async with state.proxy() as context:
         context['country'] = message.text
 
+        wg_server = await WireguardServer.create(
+            webhook_url=context['webhook'],
+            server_key=context['secret'],
+            country=context['country']
+        )
+
+        await wg_server.download_peers()
+
+    await bot.send_message(
+        message.chat.id, SERVER_ADD_SUCCESS
+    )
+
+    await bot.send_message(
+        message.chat.id, SERVER_MENU_TEXT,
+        reply_markup=AdminServerKeyboard()
+    )
     await state.finish()
+
