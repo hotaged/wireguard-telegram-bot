@@ -1,4 +1,8 @@
 from aiogram import types
+from validators import (
+    url as validate_url,
+)
+
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import (
     StatesGroup,
@@ -21,6 +25,7 @@ from bot.keyboards.base import BaseKeyboard
 from bot.resources.strings import (
     SERVER_MENU_TEXT,
     SERVER_ADD_WEBHOOK,
+    SERVER_ADD_WEBHOOK_FAIL,
     SERVER_ADD_SECRET,
     SERVER_ADD_FAILED,
     SERVER_ADD_COUNTRY,
@@ -47,7 +52,7 @@ async def callback_query_servers(callback_query: types.CallbackQuery):
     )
 
 
-class AddStorageForm(StatesGroup):
+class AddServerForm(StatesGroup):
     webhook = State()
     secret = State()
     country = State()
@@ -59,7 +64,7 @@ class AddStorageForm(StatesGroup):
 )
 async def callback_query_add_server(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
-    await AddStorageForm.webhook.set()
+    await AddServerForm.webhook.set()
     return await bot.send_message(
         callback_query.message.chat.id,
         SERVER_ADD_WEBHOOK
@@ -115,13 +120,20 @@ async def callback_query_back_default(callback_query: types.CallbackQuery):
 
 @dp.message_handler(
     IsAdminUserQueryFilter(),
-    state=AddStorageForm.webhook
+    state=AddServerForm.webhook
 )
 async def process_webhook(message: types.Message, state: FSMContext):
-    async with state.proxy() as context:
-        context['webhook'] = message.text
+    webhook_url = message.text.strip()
 
-    await AddStorageForm.next()
+    if not validate_url(webhook_url):
+        return await bot.send_message(
+            message.chat.id, SERVER_ADD_WEBHOOK_FAIL
+        )
+
+    async with state.proxy() as context:
+        context['webhook'] = webhook_url
+
+    await AddServerForm.next()
 
     return await bot.send_message(
         message.chat.id, SERVER_ADD_SECRET
@@ -130,22 +142,22 @@ async def process_webhook(message: types.Message, state: FSMContext):
 
 @dp.message_handler(
     IsAdminUserQueryFilter(),
-    state=AddStorageForm.secret
+    state=AddServerForm.secret
 )
 async def process_secret(message: types.Message, state: FSMContext):
     async with state.proxy() as context:
         context['secret'] = message.text
 
-    await AddStorageForm.next()
+    await AddServerForm.next()
 
     return await bot.send_message(
-        message.chat.id, SERVER_ADD_COUNTRY
+        message.chat.id, SERVER_ADD_COUNTRY,
     )
 
 
 @dp.message_handler(
     IsAdminUserQueryFilter(),
-    state=AddStorageForm.country
+    state=AddServerForm.country
 )
 async def process_country(message: types.Message, state: FSMContext):
     async with state.proxy() as context:
@@ -157,7 +169,11 @@ async def process_country(message: types.Message, state: FSMContext):
             country=context['country']
         )
 
-        await wg_server.download_peers()
+        if not await wg_server.download_peers():
+            return await bot.send_message(
+                message.chat.id, SERVER_ADD_FAILED,
+                reply_markup=BaseKeyboard(True)
+            )
 
     await bot.send_message(
         message.chat.id, SERVER_ADD_SUCCESS
@@ -168,4 +184,3 @@ async def process_country(message: types.Message, state: FSMContext):
         reply_markup=AdminServerKeyboard()
     )
     await state.finish()
-

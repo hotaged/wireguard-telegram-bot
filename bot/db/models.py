@@ -1,7 +1,7 @@
 import ujson
 import typing
 import aiohttp
-
+from aiohttp import ClientConnectionError
 
 from tortoise import models, fields
 from bot.keyboards.servers import ListItem
@@ -62,15 +62,25 @@ class WireguardServer(models.Model, AsListItemMixin):
     def __str__(self) -> str:
         return self.country
 
-    async def download_peers(self):
+    async def download_peers(self) -> bool:
         headers = {'x-api-token': self.server_key}
 
-        async with aiohttp.ClientSession(headers=headers) as client:
-            async with client.get(self.webhook_url) as response:
-                peers: typing.List[str] = await response.json(loads=ujson.loads)
+        try:
+            async with aiohttp.ClientSession(headers=headers) as client:
+                async with client.get(self.webhook_url) as response:
+                    if response.status != 200:
+                        await self.delete()
+                        return False
 
-                for peer_name in peers:
-                    await WireguardPeer.create(
-                        peer_name=peer_name,
-                        wg_server=self
-                    )
+                    peers: typing.List[str] = await response.json(loads=ujson.loads)
+
+                    for peer_name in peers:
+                        await WireguardPeer.create(
+                            peer_name=peer_name,
+                            wg_server=self
+                        )
+        except ClientConnectionError:
+            await self.delete()
+            return False
+
+        return True
