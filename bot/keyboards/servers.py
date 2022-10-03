@@ -5,6 +5,8 @@ from aiogram.types import (
     InlineKeyboardButton,
     CallbackQuery,
 )
+
+from bot.keyboards.base import ListItem
 from bot.resources.strings import (
     BUTTON_LIST,
     BUTTON_BACK,
@@ -18,9 +20,6 @@ QUERY_ADD = unique_query_id()
 
 QUERY_LIST_BACK = unique_query_id()
 QUERY_LIST_AT = unique_query_id()
-
-
-ListItem = typing.List[typing.Tuple[str, int]]
 
 
 class AdminServerKeyboard(InlineKeyboardMarkup):

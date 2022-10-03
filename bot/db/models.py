@@ -13,6 +13,22 @@ class AsListItemMixin:
         return list(map(lambda instance: (instance.__str__(), instance.id), await cls.filter(*args, **kwargs)))
 
 
+class AsListAsyncItemMixin:
+    async def __async_str__(self) -> str:
+        raise NotImplemented('You need to implement `__async_str__` first.')
+
+    @classmethod
+    async def as_list_async_items(cls, *args, **kwargs) -> ListItem:
+        async def wrapper(instance: cls) -> typing.Tuple[str, int]:
+            return await instance.__async_str__(), instance.id
+
+        list_of_items = []
+        for model_object in await cls.filter(*args, **kwargs):
+            list_of_items.append(await wrapper(model_object))
+
+        return list_of_items
+
+
 class TelegramUser(models.Model, AsListItemMixin):
     telegram_id = fields.IntField(unique=True)
     is_admin = fields.BooleanField(default=False)
@@ -52,7 +68,7 @@ class WireguardPeer(models.Model, AsListItemMixin):
         return config, qrcode
 
 
-class WireguardServer(models.Model, AsListItemMixin):
+class WireguardServer(models.Model, AsListItemMixin, AsListAsyncItemMixin):
     webhook_url = fields.CharField(max_length=128)
     server_key = fields.CharField(max_length=256)
     country = fields.CharField(max_length=256)
@@ -61,6 +77,12 @@ class WireguardServer(models.Model, AsListItemMixin):
 
     def __str__(self) -> str:
         return self.country
+
+    async def __async_str__(self) -> str:
+        peers_amount = await self.wg_peers.all().count()
+        peers_taken = await self.wg_peers.all().exclude(tg_user=None).count()
+
+        return f'{self.__str__()} ({peers_taken}/{peers_amount})'
 
     async def download_peers(self) -> bool:
         headers = {'x-api-token': self.server_key}
@@ -84,3 +106,33 @@ class WireguardServer(models.Model, AsListItemMixin):
             return False
 
         return True
+
+    async def available_peers(self):
+        return self.wg_peers.filter(tg_user=None)
+
+    @classmethod
+    async def list_countries(cls) -> typing.List[str]:
+        return list(await cls.all().values_list('country', flat=True))
+
+    @classmethod
+    async def get_by_country(cls, country: str) -> typing.Union['WireguardServer', None]:
+        servers = await cls.filter(country=country)
+
+        if not len(servers):
+            return None
+
+        async def available_peers_count(instance: WireguardServer) -> int:
+            return await (await instance.available_peers()).count()
+
+        current_server = servers[0]
+        current_server_peers_count = available_peers_count(servers[0])
+
+        if len(servers) > 1:
+            for server in servers[1:]:
+                if ((server_peers_count := await available_peers_count(server))
+                        > await current_server_peers_count):
+                    current_server_peers_count = server_peers_count
+                    current_server = server
+
+        return current_server
+

@@ -1,3 +1,5 @@
+import typing
+
 from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton, CallbackQuery,
@@ -11,6 +13,9 @@ from bot.utils import unique_query_id
 
 QUERY_VPN = unique_query_id()
 QUERY_SERVERS = unique_query_id()
+
+
+ListItem = typing.List[typing.Tuple[str, int]]
 
 
 class BaseKeyboard(InlineKeyboardMarkup):

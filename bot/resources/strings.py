@@ -15,6 +15,8 @@ SERVER_ADD_FAILED = 'Хмммм.... Что-то пошло не так. Пров
 
 
 BUTTON_GET_VPN = 'Получить VPN.'
+VPN_LIST_SERVERS = 'Выберите страну в которой находится VPN сервер.'
+
 BUTTON_SERVERS = 'Серверы.'
 
 BUTTON_BACK = 'Назад'

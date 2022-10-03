@@ -78,7 +78,7 @@ async def callback_query_add_server(callback_query: types.CallbackQuery):
 async def callback_query_list_servers(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
 
-    content = await WireguardServer.as_list_items()
+    content = await WireguardServer.as_list_async_items()
 
     offset, limit = AdminListKeyboard.parse_callback_query(callback_query)
 
