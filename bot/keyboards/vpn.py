@@ -1,3 +1,4 @@
+import logging
 import typing
 
 from aiogram.types import (
@@ -16,14 +17,14 @@ class ListAvailableServersKeyboard(InlineKeyboardMarkup):
     def __init__(self, items: typing.List[str], *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        map(
+        list(map(
             lambda x: self.add(
                 InlineKeyboardButton(
                     x, callback_data=f'{QUERY_GET_PEER}.{x}'
                 )
             ),
             items
-        )
+        ))
 
     @classmethod
     def query_get_peer(cls, callback_query: CallbackQuery) -> bool:

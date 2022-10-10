@@ -1,32 +1,14 @@
 import ujson
 import typing
 import aiohttp
+
+from bot.db.mixins import (
+    AsListItemMixin,
+    AsListAsyncItemMixin
+)
+
 from aiohttp import ClientConnectionError
-
 from tortoise import models, fields
-from bot.keyboards.servers import ListItem
-
-
-class AsListItemMixin:
-    @classmethod
-    async def as_list_items(cls, *args, **kwargs) -> ListItem:
-        return list(map(lambda instance: (instance.__str__(), instance.id), await cls.filter(*args, **kwargs)))
-
-
-class AsListAsyncItemMixin:
-    async def __async_str__(self) -> str:
-        raise NotImplemented('You need to implement `__async_str__` first.')
-
-    @classmethod
-    async def as_list_async_items(cls, *args, **kwargs) -> ListItem:
-        async def wrapper(instance: cls) -> typing.Tuple[str, int]:
-            return await instance.__async_str__(), instance.id
-
-        list_of_items = []
-        for model_object in await cls.filter(*args, **kwargs):
-            list_of_items.append(await wrapper(model_object))
-
-        return list_of_items
 
 
 class TelegramUser(models.Model, AsListItemMixin):
@@ -53,10 +35,11 @@ class WireguardPeer(models.Model, AsListItemMixin):
         return self.peer_name
 
     async def config_and_qrcode(self) -> typing.Tuple[str, bytes]:
-        headers = {'x-api-token': self.wg_server.server_key}
+        wg_server = await self.wg_server.first()
+        headers = {'x-api-token': wg_server.server_key}
 
-        webhook_config_url = f'{self.wg_server.webhook_url}/{self.peer_name}/config'
-        webhook_qrcode_url = f'{self.wg_server.webhook_url}/{self.peer_name}/qrcode'
+        webhook_config_url = f'{wg_server.webhook_url}/{self.peer_name}/config'
+        webhook_qrcode_url = f'{wg_server.webhook_url}/{self.peer_name}/qrcode'
 
         async with aiohttp.ClientSession(headers=headers) as client:
             async with client.get(webhook_config_url) as response:
@@ -107,7 +90,7 @@ class WireguardServer(models.Model, AsListItemMixin, AsListAsyncItemMixin):
 
         return True
 
-    async def available_peers(self):
+    def available_peers(self):
         return self.wg_peers.filter(tg_user=None)
 
     @classmethod
@@ -122,7 +105,7 @@ class WireguardServer(models.Model, AsListItemMixin, AsListAsyncItemMixin):
             return None
 
         async def available_peers_count(instance: WireguardServer) -> int:
-            return await (await instance.available_peers()).count()
+            return await instance.available_peers().count()
 
         current_server = servers[0]
         current_server_peers_count = available_peers_count(servers[0])
