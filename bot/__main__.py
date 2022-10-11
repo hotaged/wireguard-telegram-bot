@@ -19,9 +19,13 @@ async def on_shutdown(*_):
     await db.shutdown()
 
 
-if __name__ == '__main__':
+def main(*_, **__):
     executor.start_polling(
         dp,
         on_startup=on_startup,
         on_shutdown=on_shutdown
     )
+
+
+if __name__ == '__main__':
+    main()

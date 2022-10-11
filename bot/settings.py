@@ -7,7 +7,7 @@ debug = environ.get('DEBUG') == '1'
 
 
 if db_uri is None:
-    db_uri = 'sqlite://db.sqlite3'
+    db_uri = 'postgres://wgbot:AAFaBvgZBIskLA6G6ABg1hgZwpEhNJtGDUg@127.0.0.1:5432/wgbot'
 
 if debug is None:
     debug = False

@@ -1,4 +1,3 @@
-import logging
 import typing
 
 from aiogram.types import (
