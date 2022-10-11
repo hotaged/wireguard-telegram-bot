@@ -12,7 +12,7 @@ from tortoise import models, fields
 
 
 class TelegramUser(models.Model, AsListItemMixin):
-    telegram_id = fields.IntField(unique=True)
+    telegram_id = fields.BigIntField(unique=True)
     is_admin = fields.BooleanField(default=False)
 
     wg_peers: fields.ReverseRelation['WireguardPeer']
