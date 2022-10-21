@@ -21,7 +21,7 @@ async def admin_login_message(message: Message):
     user, _ = await TelegramUser.get_or_create(telegram_id=message.from_user)
     await user.update_from_dict({'is_admin': True}).save()
     return await bot.send_message(
-        message.chat.id, 'You are an admin now!',
+        message.chat.id, BASE_HANDLER_TEXT,
         reply_markup=BaseKeyboard(user.is_admin)
     )
 
