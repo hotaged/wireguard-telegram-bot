@@ -1,5 +1,5 @@
+from io import BytesIO
 from aiogram import types
-from typing import Coroutine
 
 from aiohttp.client_exceptions import (
     ClientConnectionError
@@ -9,9 +9,6 @@ from bot.db.models import (
     TelegramUser,
     WireguardServer,
     WireguardPeer
-)
-from bot.handlers.default import (
-    start_message
 )
 from bot.handlers.misc import (
     bot, dp
@@ -24,30 +21,40 @@ from bot.keyboards.vpn import (
 )
 from bot.resources.strings import (
     VPN_LIST_SERVERS, WAIT,
-    VPN_SERVER_UNAVAILABLE
+    VPN_SERVER_UNAVAILABLE,
+    BASE_HANDLER_TEXT
 )
 
 
 async def send_qrcode_and_config(
         peer: WireguardPeer,
         chat_id: int,
-        on_success: Coroutine = None,
-        on_failure: Coroutine = None
+        on_success: callable = None,
+        on_failure: callable = None
 ):
     try:
         config, qrcode = await peer.config_and_qrcode()
     except ClientConnectionError:
 
-        if on_failure:
-            await on_failure
+        if on_failure is not None:
+            await on_failure()
 
         return await bot.send_message(chat_id, VPN_SERVER_UNAVAILABLE)
 
-    if on_success:
-        await on_success
+    if on_success is not None:
+        await on_success()
+
+    config_file = BytesIO(config.encode('utf-8'))
+    config_file.name = 'wg.conf'
+
+    await bot.send_message(chat_id, 'Ваша конфигурация: \n')
 
     await bot.send_message(
         chat_id, config
+    )
+
+    await bot.send_document(
+        chat_id, config_file
     )
 
     await bot.send_photo(
@@ -61,8 +68,17 @@ async def send_qrcode_and_config(
 async def callback_query_vpn(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
 
-    user, _ = await TelegramUser.get_or_create(telegram_id=callback_query.message.from_id)
+    user, _ = await TelegramUser.get_or_create(telegram_id=callback_query.message.chat.id)
     countries = await WireguardServer.list_countries()
+
+    if not countries:
+        await bot.send_message(
+            callback_query.message.chat.id, VPN_SERVER_UNAVAILABLE
+        )
+        return await bot.send_message(
+            callback_query.message.chat.id, BASE_HANDLER_TEXT,
+            reply_markup=BaseKeyboard(user.is_admin)
+        )
 
     if not await user.wg_peers.all().count():
         return await bot.send_message(
@@ -98,7 +114,7 @@ async def callback_query_get_peer(callback_query: types.CallbackQuery):
         )
 
     peer = await available_server.available_peers().first()
-    user, _ = await TelegramUser.get_or_create(telegram_id=callback_query.message.from_id)
+    user, _ = await TelegramUser.get_or_create(telegram_id=callback_query.message.chat.id)
 
     async def on_success():
         peer.tg_user = user
@@ -111,7 +127,7 @@ async def callback_query_get_peer(callback_query: types.CallbackQuery):
     await send_qrcode_and_config(
         peer,
         callback_query.message.chat.id,
-        on_success(), on_failure()
+        on_success, on_failure
     )
 
 

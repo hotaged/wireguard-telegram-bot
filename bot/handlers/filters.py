@@ -17,3 +17,8 @@ class IsAdminUserQueryFilter(filters.Filter):
             return user.is_admin
         except DoesNotExist:
             return False
+
+
+class ForwardedMessageFilter(filters.Filter):
+    async def check(self, message: types.Message) -> bool:
+        return message.is_forward()

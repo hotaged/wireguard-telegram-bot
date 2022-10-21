@@ -170,8 +170,10 @@ async def process_country(message: types.Message, state: FSMContext):
         )
 
         if not await wg_server.download_peers():
+            await bot.send_message(message.chat.id, SERVER_ADD_FAILED)
+
             return await bot.send_message(
-                message.chat.id, SERVER_ADD_FAILED,
+                message.chat.id, BASE_HANDLER_TEXT,
                 reply_markup=BaseKeyboard(True)
             )
 
