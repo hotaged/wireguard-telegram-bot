@@ -16,5 +16,7 @@ COPY --from=builder /usr/share/python3/app /usr/share/python3/app
 
 RUN ln -snf /usr/share/python3/app/bin/* /usr/local/bin/
 
+WORKDIR /usr/local/bin
+
 COPY pyproject.toml /usr/local/bin/
 ADD migrations /usr/local/bin/migrations

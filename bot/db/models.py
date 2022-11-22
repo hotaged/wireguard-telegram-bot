@@ -1,6 +1,7 @@
 import ujson
 import typing
 import aiohttp
+from tortoise.queryset import QuerySet
 
 from bot.db.mixins import (
     AsListItemMixin,
@@ -84,13 +85,14 @@ class WireguardServer(models.Model, AsListItemMixin, AsListAsyncItemMixin):
                             peer_name=peer_name,
                             wg_server=self
                         )
+
         except ClientConnectionError:
             await self.delete()
             return False
 
         return True
 
-    def available_peers(self):
+    def available_peers(self) -> QuerySet[WireguardPeer]:
         return self.wg_peers.filter(tg_user=None)
 
     @classmethod

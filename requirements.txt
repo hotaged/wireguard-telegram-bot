@@ -5,5 +5,5 @@ rich
 uvloop
 ujson
 python-rapidjson
-aerich
+aerich==0.6.3
 validators

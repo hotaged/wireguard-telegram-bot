@@ -49,5 +49,8 @@ services:
     restart: unless-stopped
     networks:
       - shared
-    command: bash -c "bot"
+    command: bash -c "aerich upgrade && bot"
+    depends_on:
+      - database
+      - database-admin
 

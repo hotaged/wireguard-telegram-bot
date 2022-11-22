@@ -6,9 +6,6 @@ db_uri = environ.get('DB_URI')
 debug = environ.get('DEBUG') == '1'
 
 
-# postgres://wgbot:AAFaBvgZBIskLA6G6ABg1hgZwpEhNJtGDUg@127.0.0.1:5432/wgbot
-
-
 if token is None:
     raise ValueError('Environment variable `TOKEN` was not specified.')
 
